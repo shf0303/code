@@ -1,0 +1,33 @@
+@import '~antd/dist/antd.css';
+li{list-style: none;margin-bottom: 8px}
+.App {
+    overflow: hidden;
+}
+.ant-layout-header .logo {
+    width: 150px;
+    height: 64px;
+    float: left;
+}
+.header{
+  color:#a6adb4;
+}
+.logo{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.logo .status{
+    height: 30px;
+    margin-top: 0px;
+}
+.logo .avatar_img{
+    width: 30px;
+    height: 30px;
+}
+.logo .load_img{
+    width: 30px;
+    height: 30px;
+}
+.wel-msg{
+    color: rgba(255, 255, 255, 0.65);
+}

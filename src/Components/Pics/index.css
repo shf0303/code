@@ -1,0 +1,8 @@
+div .PicNumber{
+    width: 300px;
+}
+div .PicImg{
+    width: 90px;
+    height: 42px;
+    display: inline-block;
+}

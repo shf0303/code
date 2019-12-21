@@ -1,0 +1,11 @@
+.register{
+    width: 700px;
+    margin: 0 auto;
+    margin-top: 50px;
+}
+.register .loginname{
+    margin-bottom: 8px;
+}
+.register .register-btn{
+  margin-top: 10px;
+}

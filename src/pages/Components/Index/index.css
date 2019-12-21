@@ -1,0 +1,22 @@
+.details{
+    width: 100%;
+}
+
+.inandout{
+    clear: both;
+    width: 100%;
+    background: orange;
+}
+.date{
+    width: 30%;
+    float: left;
+}
+.in{
+    width: 30%;
+    float: left;
+    margin-left: 5%;
+}
+.out{
+    width: 30%;
+    float: right;
+}
