@@ -163,9 +163,8 @@ class App extends Component {
                                 )}
                             </Header>
 
-
                             <Layout>
-                                <Sider onClick={()=>{this.setState({current_key:undefined})}} width={200} style={{ background: '#fff' }}>
+                                {localStorage.getItem("token")?(<Sider onClick={()=>{this.setState({current_key:undefined})}} width={200} style={{ background: '#fff' }}>
                                     <Menu
                                         mode="inline"
                                         style={{ height: '100%', borderRight: 0 }}
@@ -220,8 +219,9 @@ class App extends Component {
                                             <Menu.Item key="8"><Link to={'/book/member'}>成员管理</Link></Menu.Item>
                                         </SubMenu>
                                     </Menu>
-                                </Sider>
-
+                                </Sider>):(
+                                    <span/>
+                                )}
                                 <Layout style={{ padding: '0 24px 24px' }}>
                                     <Content
                                         style={{
