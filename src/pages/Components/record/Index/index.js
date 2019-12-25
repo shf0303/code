@@ -1,11 +1,10 @@
 import React, {Component} from 'react';
-import {DatePicker, Divider, Pagination, Row, Col, Statistic, Popconfirm, Icon,Spin} from "antd";
-import axios from 'axios';
-import baseurl from "../../../../baseurl";
+import {DatePicker, Divider, Pagination, Row, Col, Statistic, Popconfirm, Icon, Spin, message} from "antd";
 import {Link} from 'react-router-dom'
 import moment from 'moment';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import 'moment/locale/zh-cn';
+import {ajax_get, ajax_post} from "../../../../axios";
 moment.locale('zh-cn');
 const {RangePicker} = DatePicker;
 class Index extends Component {
@@ -20,45 +19,59 @@ class Index extends Component {
 
     init=(date)=>{
         this.setState({spinstatus:true});
-        axios({
-            method:'get',
-            url:baseurl+'api/record/account?token='+localStorage.getItem("token"),
-            params:{
+        ajax_get(
+            'api/record/account?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setSource(data.list);
+                this.setState({in:data.in,out:data.out,total:data.list.length})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {
                 begin_date:date === undefined ||date[0] === ''? undefined : date[0],
                 end_date:date === undefined || date[1]===''? undefined : date[1],
             }
-        }).then((response)=>{
-            console.log(response)
-            this.setSource(response.data.data.list);
-            this.setState({in:response.data.data.in,out:response.data.data.out,total:response.data.data.list.length})
-        })
+        )
 
-        axios({
-            method:'get',
-            url:baseurl+'api/record/account/waiting?token='+localStorage.getItem("token"),
-            params:{
+        ajax_get(
+            'api/record/account/waiting?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setState({waitin:data.total})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {
                 type:1,
-                begin_date:date === undefined || date[0]===''? undefined : date[0],
+                begin_date:date === undefined ||date[0] === ''? undefined : date[0],
                 end_date:date === undefined || date[1]===''? undefined : date[1],
             }
-        }).then((response)=>{
-            console.log(response)
-            this.setState({waitin:response.data.data.total})
-        })
+        )
 
-        axios({
-            method:'get',
-            url:baseurl+'api/record/account/waiting?token='+localStorage.getItem("token"),
-            params:{
+        ajax_get(
+            'api/record/account/waiting?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setState({waitout:data.total})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {
                 type:2,
-                begin_date:date === undefined || date[0]===''? undefined : date[0],
+                begin_date:date === undefined ||date[0] === ''? undefined : date[0],
                 end_date:date === undefined || date[1]===''? undefined : date[1],
             }
-        }).then((response)=>{
-            this.setState({waitout:response.data.data.total})
-        })
-
-        this.setState({spinstatus:false})
+        )
     }
 
 
@@ -130,8 +143,7 @@ class Index extends Component {
                             <Statistic title="待付" value={this.state.waitout} />
                         </Col>
                     </Row>
-                    <div style={{marginTop:'50px',height:'500px'}}>
-                        <table border={1} style={{width:1000,textAlign:'center',verticalAlign:'middle'}}>
+                        <table border={1} style={{width:1000,textAlign:'center',verticalAlign:'middle',borderColor:'gray'}}>
                             <thead>
                             <tr>
                                 <th style={{lineHeight:'40px'}}>日期</th>
@@ -166,13 +178,20 @@ class Index extends Component {
                                                 cancelText={"取消"}
                                                 icon={<Icon type="question-circle-o" style={{ color: 'red' }} />}
                                                 onConfirm={()=>{
-                                                    axios({
-                                                        method:'post',
-                                                        url:baseurl+'api/record/delete?id='+item.id+'&token='+localStorage.getItem("token")
-                                                    }).then((response)=>{
-                                                        console.log(response)
-                                                        this.init();
-                                                    })
+                                                    this.setState({spinstatus:true})
+                                                    ajax_post(
+                                                        'api/record/delete?id='+item.id+'&token='+localStorage.getItem("token"),
+                                                        ()=>{
+                                                            message.success("删除成功")
+                                                            this.init();
+                                                        },
+                                                        (err)=>{
+                                                            message.error(err.data)
+                                                        },
+                                                        ()=>{
+                                                            this.setState({spinstatus:false})
+                                                        },
+                                                    )
                                                 }}
                                             >
                                                 <span style={{cursor:'pointer',color:'#1890ff'}}>删除</span>
@@ -183,10 +202,8 @@ class Index extends Component {
                             })}
                             </tbody>
                         </table>
-
-
-                    </div>
                     <Pagination
+                        style={{marginTop:'20px'}}
                         total={this.state.total}
                         pageSize={10}
                         onChange={(page)=>{this.setState({page:page})}}

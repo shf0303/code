@@ -1,80 +1,55 @@
 import React, {Component} from 'react';
-import axios from 'axios';
-import baseurl from "../../../../../baseurl";
-import {Spin, message, Table, Divider, Popconfirm, Icon} from 'antd';
+import {Spin, message, Table, Divider, Popconfirm, Icon,Menu} from 'antd';
 import {Link} from "react-router-dom";
+import {ajax_get, ajax_post} from "../../../../../axios";
 class Index extends Component {
     constructor(props){
         super(props);
         this.state={
             spinstatus:false,
+            current_key:"in"
         }
     }
     init=()=>{
         if(localStorage.getItem("token")){
             this.setState({spinstatus:true})
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:1,dataType:3}  //get请求和post请求不同，get请求的数据用params,而且格式是对象，post是data,格式是qs转换后的格式
-            }).then((response)=>{
-                this.getDataSource(response.data.data,1)
-            }).catch((error)=>{
-                message.error("请检查你的网络")
-            })
+            ajax_get(
+                'api/category?token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.getDataSource(data,1)
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                },
+                {type:1,dataType:3}
+            )
 
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:2,dataType:3}
-            }).then((response)=>{
-                this.getDataSource(response.data.data,2)
-            }).catch((err)=>{
-                message.error("请检查你的网络")
-            })
+            ajax_get(
+                'api/category?token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.getDataSource(data,2)
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                },
+                {type:2,dataType:3}
+            )
         }
-        this.setState({spinstatus:false})
     }
 
 
     getDataSource=(data,type)=>{
         if(data){
             var source =[];
-            /*function change(children,data) {
-                if(data.sub.length != 0) {
-                    for(var j=0;j<data.sub.length;j++){
-                        children.push({
-                            key:data.sub[j].id,
-                            name:data.sub[j].name,
-                            parent:data.sub[j].parent_id,
-                            create_time:data.sub[j].created_at,
-                            update_time:data.sub[j].updated_at,
-                            sort:data.sub[j].sort,
-                            action:[data.sub[j].id,data.sub[j].name,data.sub[j].sort],
-                            children:[]
-                        })
-                        change(children[j].children,data.sub[j])
-                    }
-                }
-            }
-
-            for(var i=0;i<data.length;i++){
-                var obj={
-                    key:data[i].id,
-                    name:data[i].name,
-                    parent:data[i].parent_id,
-                    create_time:data[i].created_at,
-                    update_time:data[i].updated_at,
-                    sort:data[i].sort,
-                    action:[data[i].id,data[i].name,data[i].sort],
-                    children:[]
-                }
-                change(obj.children,data[i])
-                source.push(obj)
-            }  */
             //递归优化
             (function getsource (source,data) {
-                for(var i=0;i<data.length;i++){
+                for(let i=0;i<data.length;i++){
                     source.push({
                         key:data[i].id,
                         name:data[i].name,
@@ -86,11 +61,12 @@ class Index extends Component {
                     })
                     if(data[i].sub.length != 0){
                         getsource(source[i].children,data[i].sub)
+                    }else{
+                        //当该分类下没有分支时，删除Children
+                        delete source[i].children
                     }
                 }
             })(source,data)
-
-
 
             if (type==1){
                 this.setState({dataSource1:source})
@@ -151,14 +127,19 @@ class Index extends Component {
                             onConfirm={
                                 ()=>{
                                     this.setState({spinstatus:true})
-                                    axios({
-                                        method: 'post',
-                                        url:baseurl+'api/category/delete?id='+text[0]+'&token='+localStorage.getItem("token")
-                                    }).then((response)=>{
-                                        this.init();
-                                    }).catch((error)=>{
-                                        this.setState({spinstatus:false})
-                                    })
+                                    ajax_post(
+                                        'api/category/delete?id='+text[0]+'&token='+localStorage.getItem("token"),
+                                        ()=>{
+                                            this.init()
+                                            message.success("删除成功")
+                                        },
+                                        (err)=>{
+                                            message.error(err.data)
+                                        },
+                                        ()=>{
+                                            this.setState({spinstatus:false})
+                                        }
+                                    )
                                 }
                             }
                         >
@@ -172,16 +153,34 @@ class Index extends Component {
         return (
             <div>
                 <Spin tip={'loading'} spinning={this.state.spinstatus}>
-                    <h3>收入类别</h3>
-                    <Table
-                        columns={columns}
-                        dataSource={this.state.dataSource1}
-                    />
-                    <h3>支出类别</h3>
-                    <Table
-                        columns={columns}
-                        dataSource={this.state.dataSource2}
-                    />
+                    <Menu
+                        onClick={(e)=>{this.setState({current_key:e.key})}}
+                        selectedKeys={this.state.current_key}
+                        mode="horizontal"
+                    >
+                        <Menu.Item key="in">
+                            <Icon type="mail" />
+                            收入类别
+                        </Menu.Item>
+                        <Menu.Item key="out" >
+                            <Icon type="appstore" />
+                            支出类比
+                        </Menu.Item>
+                    </Menu>
+                    <div style={{marginTop:'20px'}}>
+                        {this.state.current_key==="in"?(
+                            <Table
+                                columns={columns}
+                                dataSource={this.state.dataSource1}
+                            />
+                        ):(
+                            <Table
+                                columns={columns}
+                                dataSource={this.state.dataSource2}
+                            />
+                        )}
+                    </div>
+
                 </Spin>
             </div>
         );

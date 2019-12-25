@@ -1,8 +1,6 @@
 import React, {Component} from 'react';
 import {Button, Form, Input, Modal, Spin, Table, Radio , Popconfirm, Icon, message} from "antd";
-import axios from 'axios';
-import baseurl from "../../../../../baseurl";
-import qs from "qs";
+import {ajax_get, ajax_post} from "../../../../../axios";
 class AddForm extends Component{
     render() {
         const { visible, onCancel, onAdd, form} = this.props;
@@ -49,20 +47,22 @@ class Member extends Component{
             if(!err){
                 this.setState({spinstatus:true})
                 values.book_id=this.state.book_id
-                axios({
-                    method:"post",
-                    url:baseurl+'api/member/add?token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=> {
-                    this.getDataSource()
-                    message.success("添加成功")
-                    this.setState({add_visible: false})
-                    this.setState({spinstatus:false})
-                }).catch((err)=>{
-                    message.error(err)
-                    this.setState({add_visible: false})
-                    this.setState({spinstatus:false})
-                })
+                ajax_post(
+                    'api/member/add?token='+localStorage.getItem("token"),
+                    ()=>{
+                        this.getDataSource()
+                        message.success("添加成功")
+                        this.setState({add_visible: false})
+                    },
+                    (err)=>{
+                        message.error(err.data)
+                        this.setState({add_visible: false})
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false})
+                    },
+                    values
+                )
             }
         })
     }
@@ -74,25 +74,28 @@ class Member extends Component{
 
     init=()=>{
         this.setState({spinstatus:true})
-        axios({
-            method:'get',
-            url:baseurl+'api/book?token='+localStorage.getItem("token"),
-        }).then((response)=>{
-            let source=[]
-            response.data.data.map((item,key)=>{
-                if(item.user_id == localStorage.getItem("user_id")){
-                    source.push({
-                        book_name:item.name,
-                        book_id:item.id
-                    })
-                }
-            })
-            this.setState({book:source})
-            this.setState({spinstatus:false})
-        }).catch((err)=>{
-            message.error(err)
-            this.setState({spinstatus:false})
-        })
+        ajax_get(
+            'api/book?token='+localStorage.getItem("token"),
+            (data)=>{
+                let source=[]
+                data.map((item,key)=>{
+                    if(item.user_id == localStorage.getItem("user_id")){
+                        source.push({
+                            book_name:item.name,
+                            book_id:item.id
+                        })
+                    }
+                })
+                this.setState({book:source})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+
+            }
+        )
     }
 
     componentDidMount() {
@@ -101,26 +104,28 @@ class Member extends Component{
 
     getDataSource=()=>{
         this.setState({spinstatus:true})
-        let source=[]
-        axios({
-            method:'get',
-            url:baseurl+'api/member?token='+localStorage.getItem("token"),
-            params:{book_id:this.state.book_id}
-        }).then((response)=>{
-            response.data.data.map((item,key)=>{
-                source.push({
-                    key:key,
-                    nickname:item.nickname,
-                    mobile:item.mobile,
-                    action:item.id
+        let source=[];
+        ajax_get(
+            'api/member?token='+localStorage.getItem("token"),
+            (data)=>{
+                data.map((item,key)=>{
+                    source.push({
+                        key:key,
+                        nickname:item.nickname,
+                        mobile:item.mobile,
+                        action:item.id
+                    })
                 })
-            })
-            this.setState({dataSource:source})
-            this.setState({spinstatus:false})
-        }).catch((err)=>{
-            message.error(err)
-            this.setState({spinstatus:false})
-        })
+                this.setState({dataSource:source})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {book_id:this.state.book_id}
+        )
     }
 
 
@@ -150,20 +155,23 @@ class Member extends Component{
                             onConfirm={
                                 ()=>{
                                     this.setState({spinstatus:true})
-                                    axios({
-                                        method:'post',
-                                        url:baseurl+'api/member/delete?token='+localStorage.getItem("token"),
-                                        data:qs.stringify({
+                                    ajax_post(
+                                        'api/member/delete?token='+localStorage.getItem("token"),
+                                        ()=>{
+                                            message.success("删除成功")
+                                            this.getDataSource();
+                                        },
+                                        (err)=>{
+                                            message.error(err.data)
+                                        },
+                                        ()=>{
+                                            this.setState({spinstatus:false})
+                                        },
+                                        {
                                             book_id:this.state.book_id,
                                             user_id:text
-                                        })
-                                    }).then((response)=>{
-                                        message.success("删除成功")
-                                        this.getDataSource();
-                                    }).catch((err)=>{
-                                        message.error(err)
-                                        this.setState({spinstatus:false})
-                                    })
+                                        }
+                                    )
                                 }
                             }
                         >

@@ -9,14 +9,12 @@ import {
     Cascader,
     DatePicker
 } from 'antd';
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from "../../../../baseurl";
 import UploadPicture from "../../../../Components/UploadPicture";
 import {createHashHistory} from "history";
 import moment from 'moment';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import 'moment/locale/zh-cn';
+import {ajax_get, ajax_post} from "../../../../axios";
 moment.locale('zh-cn');
 
 class AddForm extends React.Component {
@@ -70,58 +68,74 @@ class AddForm extends React.Component {
                 values.date=values.date.format("YYYY-MM-DD")
                 if(values.total_money>=Number(values.money)){
                     this.setState({spinstatus:true})
-                    axios({
-                        method:'post',
-                        url:baseurl+'api/record/create?token='+localStorage.getItem("token"),
-                        data:qs.stringify(values)
-                    }).then((response)=>{
-                        this.setState({spinstatus:false})
-                        createHashHistory().push("/record")
-                    })
+                    ajax_post(
+                        'api/record/create?token='+localStorage.getItem("token"),
+                        ()=>{
+                            message.success("添加成功")
+                            createHashHistory().push("/record")
+                        },
+                        (err)=>{
+                            message.error(err.data)
+                        },
+                        ()=>{
+                            this.setState({spinstatus:false})
+                        },
+                        values
+                    )
                 }else{
                     message.error("实付金额不能大于记账金额")
                 }
             }
         })
     }
+
     handleSend=(filekey)=>{
         this.filekey.push(filekey) //同步的
         this.props.form.setFieldsValue({"image_keys":this.filekey.toString()})
     }
 
     init = ()=>{
-        if(localStorage.getItem("token")){
-            this.setState({spinstatus:true})
-            axios({
-                method:'get',
-                url:baseurl+'api/account?token='+localStorage.getItem("token")
-            }).then((response)=>{
-                this.getAccountSource(response.data.data)
-            }).catch((error)=>{
-                message.error("加载失败")
-            })
+        this.setState({spinstatus:true})
+        ajax_get(
+            'api/account?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.getAccountSource(data)
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            }
+        )
 
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:1,dataType:3}
-            }).then((response)=>{
-                this.getCategorySource(response.data.data,1)
-            }).catch((error)=>{
-                message.error("加载失败")
-            })
+        ajax_get(
+            'api/category?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.getCategorySource(data,1)
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {type:1,dataType:3}
+        )
 
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:2,dataType:3}
-            }).then((response)=>{
-                this.getCategorySource(response.data.data,2)
-            }).catch((err)=>{
-                message.error("加载失败")
-            })
-        }
-        this.setState({spinstatus:false})
+        ajax_get(
+            'api/category?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.getCategorySource(data,2)
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {type:2,dataType:3}
+        )
     }
 
     componentDidMount() {

@@ -1,65 +1,130 @@
-import React, {Component} from 'react';
-import Pics from '../../../Components/Pics';
+import React from 'react';
 import './index.css';
-import{Input,Button} from "antd";
-import Password from '../../../Components/PassWord';
-import axios from 'axios';
-import baseurl from '../../../baseurl';
-import qs from 'qs';
+import{Form, Icon, Input, Button,message,Spin} from "antd";
 import {createHashHistory} from 'history';
-import {message} from 'antd';
-import {Link} from 'react-router-dom'
-class Login extends Component {
+import {ajax_get, ajax_post} from "../../../axios";
+import {Link} from "react-router-dom";
+
+
+class LoginForm extends React.Component {
     constructor(props){
-        super(props);
-        this.state = {}
-    }
-
-    handleSend = (data)=>{
-        this.setState({...data})
-    }
-
-    handleLogin = ()=>{
-        const obj = {
-            mobile:this.state.mobile,
-            password:this.state.password,
-            captcha_code: this.state.captcha_code,
-            captcha_key: this.state.captcha_key
+        super(props)
+        this.state={
+            captcha:false,
+            spinStatus:false
         }
-        axios({
-            method: 'post',
-            url: baseurl+'api/user/token/mobile',
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            data: qs.stringify(obj)
-        }).then((response)=>{
-            if(response.data.status){
-                message.success("登陆成功");
-                window.localStorage.setItem("token",response.data.data.token);
-                this.props.send({token:window.localStorage.getItem("token")});
-                localStorage.setItem("user_id",response.data.data.id)
-                createHashHistory().push("/");
-            }else{
-                message.error("账号密码不匹配！");
-            }
-        })
     }
 
-    componentDidMount() {
-        this.props.change({current_key:"3"})
+    handleSubmit = e => {
+        e.preventDefault();
+        this.props.form.validateFields((err, values) => {
+            if (!err) {
+                values.captcha_key=this.state.captcha_key
+                this.setState({spinStatus:true})
+                ajax_post(
+                    'api/user/token/mobile',
+                    (data)=>{
+                        message.success("登录成功")
+                        window.localStorage.setItem("token",data.token);
+                        this.props.init(); //让首页初始化更新页面
+                        window.localStorage.setItem("user_id",data.id)
+                        createHashHistory().push('/')
+                    },
+                    (err)=>{
+                        if(err.code === 'INVALID_CAPTCHA'){
+                            this.getCaptcha();
+                            this.setState({captcha:true})
+                        }else {
+                            message.error(err.data)
+                        }
+                    },
+                    ()=>{
+                        this.setState({spinStatus:false})
+                    },
+                    values)
+            }
+        });
+    };
+
+
+    getCaptcha=()=>{
+        this.setState({spinStatus:true})
+        ajax_get(
+            'api/captcha',
+            (data)=>{
+                this.setState({url:data.url,captcha_key:data.key})
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinStatus:false})
+            })
+
     }
+
 
     render() {
+        const { getFieldDecorator } = this.props.form;
         return (
-            <div className={'login'}>
-                <Pics send={this.handleSend}></Pics>
-                手机号码：<Input className={'input-mobile'} value={this.state.mobile} onChange={(e)=>{this.setState({mobile:e.target.value})}} />
-                <Password send={this.handleSend}></Password>
-                <Button type={'primary'} onClick={this.handleLogin}>登录</Button><Link to={'/findpassword'}>？忘记密码</Link>
+            <div className={'form-box'}>
+                <Spin tip={'loading'} spinning={this.state.spinStatus}>
+                    <Form onSubmit={this.handleSubmit} className="login-form">
+                        <Form.Item>
+                            {getFieldDecorator('mobile', {
+                                rules: [{ required: true, message: '请输入手机号' }],
+                            })(
+                                <Input
+                                    prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
+                                    placeholder="请输入手机号码"
+                                />,
+                            )}
+                        </Form.Item>
+
+                        <Form.Item>
+                            {getFieldDecorator('password', {
+                                rules: [{ required: true, message: '请输入密码' }],
+                            })(
+                                <Input
+                                    prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />}
+                                    type="password"
+                                    placeholder="请输入密码"
+                                />,
+                            )}
+                        </Form.Item>
+
+                        {this.state.captcha?(
+                            <Form.Item>
+                                {getFieldDecorator('captcha_code', {
+                                    rules: [{ required: true, message: '请输入验证码' }],
+                                })(
+                                    <div>
+                                        <Input
+                                            prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />}
+                                            placeholder="请输入验证码"
+                                        />
+                                        <img src={this.state.url} alt="努力加载中"/>
+                                        <Button onClick={this.getCaptcha} type="default">重新获取验证码</Button>
+                                    </div>
+                                )}
+                            </Form.Item>
+                        ):(null)}
+
+                        <Form.Item>
+                            <Link className="login-form-forgot" to={'/findpassword'}>
+                                忘记密码
+                            </Link>
+                            <Link to={'/register'}>注册</Link>
+                            <Button type="primary" htmlType="submit" className="login-form-button">
+                                登录
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </Spin>
             </div>
         );
     }
 }
 
+const Login = Form.create({ name: 'login' })(LoginForm);
 export default Login;

@@ -1,34 +1,43 @@
 import React, {Component} from 'react';
-import {Descriptions, Table, Divider, Popconfirm, Icon, Button} from "antd";
-import axios from 'axios';
-import baseurl from "../../../../baseurl";
+import {Descriptions, Table, Divider, Popconfirm, Icon, Button, message,Spin} from "antd";
 import {Link} from "react-router-dom";
+import {ajax_get} from "../../../../axios";
 class RecordDetail extends Component {
     constructor(props){
         super(props);
-        this.state={}
+        this.state={
+            spinStatus:false
+        }
     }
 
     init=()=>{
-        axios({
-            method:'get',
-            url:baseurl+'api/record/detail?id='+localStorage.getItem("record_id")+'&token='+localStorage.getItem("token")
-        }).then((response)=>{
-            this.setState({
-                category_name:response.data.data.category_name,
-                user_name:response.data.data.user_nickname,
-                type:response.data.data.type===1? "收入":'支出',
-                total_money:response.data.data.total_money,
-                paid_money:response.data.data.paid_money,
-                date:response.data.data.date,
-                company_name:response.data.data.company_name,
-                remark:response.data.data.remark,
-                created_at:response.data.data.created_at,
-                updated_at:response.data.data.updated_at
-            },()=>{
-                this.getDataSource(response.data.data.items);
-            });
-        })
+        this.setState({spinStatus:true})
+        ajax_get(
+            'api/record/detail?id='+localStorage.getItem("record_id")+'&token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setState({
+                    category_name:data.category_name,
+                    user_name:data.user_nickname,
+                    type:data.type===1? "收入":'支出',
+                    total_money:data.total_money,
+                    paid_money:data.paid_money,
+                    date:data.date,
+                    company_name:data.company_name,
+                    remark:data.remark,
+                    created_at:data.created_at,
+                    updated_at:data.updated_at
+                },()=>{
+                    this.getDataSource(data.items);
+                })
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinStatus:false})
+            }
+
+        )
     }
 
     getDataSource=(data)=>{
@@ -124,42 +133,44 @@ class RecordDetail extends Component {
             ]
         return (
             <div>
-                <Descriptions title="单笔详情" bordered>
-                    <Descriptions.Item label="类型">{this.state.type}</Descriptions.Item>
-                    <Descriptions.Item label="类别名称">{this.state.category_name}</Descriptions.Item>
-                    <Descriptions.Item label="记账人">{this.state.user_name}</Descriptions.Item>
-                    <Descriptions.Item label="账面金额">{this.state.total_money}</Descriptions.Item>
-                    <Descriptions.Item label="已付金额">{this.state.paid_money}</Descriptions.Item>
-                    <Descriptions.Item label="记账日期">{this.state.date}</Descriptions.Item>
-                    <Descriptions.Item label="交易对象">{this.state.company_name}</Descriptions.Item>
-                    <Descriptions.Item label="创建时间">{this.state.created_at}</Descriptions.Item>
-                    <Descriptions.Item label="更新时间">{this.state.updated_at}</Descriptions.Item>
-                    <Descriptions.Item label="备注" span={3}>{this.state.remark}</Descriptions.Item>
-                    <Descriptions.Item label="记账记录" span={3}>
-                        <Table
-                            columns={columns}
-                            dataSource={this.state.dataSource}
-                        />
-                        <Link to={'/record/add_item'}><Button
-                            icon={'plus'}
-                            style={{marginTop:30}}
-                            onClick={()=>{
-                                localStorage.setItem("max",(this.state.total_money-this.state.paid_money))
-                            }}
-                        >点我添加</Button></Link>
-                    </Descriptions.Item>
-                </Descriptions>
-                <Link to={'/record/edit_record'}><Button
-                    icon={'edit'}
-                    style={{marginTop:30}}
-                    onClick={()=>{
-                        localStorage.setItem("record_msg",JSON.stringify({
-                            total_money:this.state.total_money,
-                            company_name:this.state.company_name,
-                            remark:this.state.remark
-                        }))
-                    }}
-                >点我修改</Button></Link>
+                <Spin tip={"loading"} spinning={this.state.spinStatus}>
+                    <Descriptions title="单笔详情" bordered>
+                        <Descriptions.Item label="类型">{this.state.type}</Descriptions.Item>
+                        <Descriptions.Item label="类别名称">{this.state.category_name}</Descriptions.Item>
+                        <Descriptions.Item label="记账人">{this.state.user_name}</Descriptions.Item>
+                        <Descriptions.Item label="账面金额">{this.state.total_money}</Descriptions.Item>
+                        <Descriptions.Item label="已付金额">{this.state.paid_money}</Descriptions.Item>
+                        <Descriptions.Item label="记账日期">{this.state.date}</Descriptions.Item>
+                        <Descriptions.Item label="交易对象">{this.state.company_name}</Descriptions.Item>
+                        <Descriptions.Item label="创建时间">{this.state.created_at}</Descriptions.Item>
+                        <Descriptions.Item label="更新时间">{this.state.updated_at}</Descriptions.Item>
+                        <Descriptions.Item label="备注" span={3}>{this.state.remark}</Descriptions.Item>
+                        <Descriptions.Item label="记账记录" span={3}>
+                            <Table
+                                columns={columns}
+                                dataSource={this.state.dataSource}
+                            />
+                            <Link to={'/record/add_item'}><Button
+                                icon={'plus'}
+                                style={{marginTop:30}}
+                                onClick={()=>{
+                                    localStorage.setItem("max",(this.state.total_money-this.state.paid_money))
+                                }}
+                            >点我添加</Button></Link>
+                        </Descriptions.Item>
+                    </Descriptions>
+                    <Link to={'/record/edit_record'}><Button
+                        icon={'edit'}
+                        style={{marginTop:30}}
+                        onClick={()=>{
+                            localStorage.setItem("record_msg",JSON.stringify({
+                                total_money:this.state.total_money,
+                                company_name:this.state.company_name,
+                                remark:this.state.remark
+                            }))
+                        }}
+                    >点我修改</Button></Link>
+                </Spin>
             </div>
         );
     }

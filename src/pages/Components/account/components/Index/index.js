@@ -1,9 +1,9 @@
 import React, {Component} from 'react';
-import axios from 'axios';
 import {Table} from 'antd';
-import  baseurl from '../../../../../baseurl';
 import {Button,Icon,Divider,Popconfirm,message,Spin} from 'antd';
 import {Link} from 'react-router-dom';
+import {ajax_get, ajax_post} from "../../../../../axios";
+import {createHashHistory} from "history";
 class Index extends Component {
     constructor(props){
         super(props);
@@ -77,17 +77,19 @@ class Index extends Component {
                             onConfirm={
                                 ()=>{
                                     this.setState({spinstatus:true})
-                                    axios({
-                                        method: 'post',
-                                        url:baseurl+'api/account/delete?id='+text+'&token='+localStorage.getItem("token")
-                                    }).then((response)=>{
-                                        axios({
-                                            method:'get',
-                                            url:baseurl+'api/account?token='+localStorage.getItem("token")
-                                        }).then((response)=>{
-                                            this.init();
-                                        })
-                                    })
+                                    ajax_post(
+                                        'api/account/delete?id='+text+'&token='+localStorage.getItem("token"),
+                                        (data)=>{
+                                            message.success(data)
+                                            this.init()
+                                        },
+                                        (err)=>{
+                                            message.error(err.data)
+                                        },
+                                        ()=>{
+                                            this.setState({spinstatus:false})
+                                        }
+                                    )
                                 }
                             }
                         >
@@ -130,17 +132,21 @@ class Index extends Component {
         if(localStorage.getItem("token")){
             //判断加载状态
             this.setState({spinstatus:true})
-            axios({
-                method:'get',
-                url:baseurl+'api/account?token='+localStorage.getItem("token")
-            }).then((response)=>{
-                this.getDataSource(response.data.data);
-                this.setState({spinstatus:false})
-            }).catch((error)=>{
-                message.error("加载失败")
-                this.setState({spinstatus:false})
-            })
-        }else {return false}
+            ajax_get(
+                'api/account?token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.getDataSource(data)
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                }
+                )
+        }else {
+            createHashHistory().push('/login')
+        }
     }
 
 

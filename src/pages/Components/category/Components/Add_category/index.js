@@ -11,6 +11,7 @@ import axios from 'axios';
 import qs from 'qs';
 import baseurl from '../../../../../baseurl';
 import {createHashHistory} from "history";
+import {ajax_get, ajax_post} from "../../../../../axios";
 
 class AddForm extends React.Component {
     constructor(props) {
@@ -24,29 +25,7 @@ class AddForm extends React.Component {
 
     getSource=(data,type)=>{
         if(data){
-            var source = []; //在(),``之前，前一段代码必须加分号
-            /*function change(children,data){
-                if(data.sub.length != 0) {
-                    for(var j=0;j<data.sub.length;j++){
-                        children.push({
-                          value:data.sub[j].id,
-                          label:data.sub[j].name,
-                          children:[]
-                        })
-                        change(children[j].children,data.sub[j])
-                    }
-                }
-            }
-
-            for(var i=0;i<data.length;i++){
-                var obj = {
-                    value: data[i].id,
-                    label:data[i].name,
-                    children:[]
-                }
-                change(obj.children,data[i])
-                options.push(obj);
-            }*/
+            let source = []; //在(),``之前，前一段代码必须加分号
             (function getsource (source,data) {
                 for(var i=0;i<data.length;i++){
                     source.push({
@@ -71,29 +50,35 @@ class AddForm extends React.Component {
 
 
     init = ()=>{
-        if(localStorage.getItem("token")){
             this.setState({spinstatus:true})
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:1,dataType:3}
-            }).then((response)=>{
-                this.getSource(response.data.data,1)
-            }).catch((error)=>{
-                message.error("请检查你的网络")
-            })
+            ajax_get(
+                'api/category?token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.getSource(data,1)
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                },
+                {type:1,dataType:3}
+            )
 
-            axios({
-                method:'get',
-                url:baseurl+'api/category?token='+localStorage.getItem("token"),
-                params:{type:2,dataType:3}
-            }).then((response)=>{
-                this.getSource(response.data.data,2)
-            }).catch((err)=>{
-                message.error("请检查你的网络")
-            })
-        }
-        this.setState({spinstatus:false})
+            ajax_get(
+                'api/category?token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.getSource(data,2)
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                },
+                {type:2,dataType:3}
+            )
+
     }
 
 
@@ -104,17 +89,21 @@ class AddForm extends React.Component {
             if (!err) {
                 values.type = values.type[0]
                 values.parent_id = values.parent_id[values.parent_id.length-1]
-                axios({
-                    method:'post',
-                    url:baseurl+'api/category/create?token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    createHashHistory().push('/category');
-                    message.success("添加账户成功");
-                    console.log(response);
-                }).catch((error)=>{
-                    message.error("添加账户失败")
-                })
+                this.setState({spinstatus:true})
+                ajax_post(
+                    'api/category/create?token='+localStorage.getItem("token"),
+                    ()=>{
+                        createHashHistory().push('/category');
+                        message.success("添加账户成功");
+                    },
+                    ()=>{
+
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false})
+                    },
+                    values
+                )
             }
         });
     }

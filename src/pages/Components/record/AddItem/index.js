@@ -1,13 +1,11 @@
 import React, {Component} from 'react';
 import {Button, Cascader, DatePicker, Form, Input, message, Spin} from "antd";
-import baseurl from "../../../../baseurl";
-import axios from "axios";
-import qs from 'qs';
 import UploadPicture from "../../../../Components/UploadPicture";
 import moment from 'moment';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import 'moment/locale/zh-cn';
 import {createHashHistory} from "history";
+import {ajax_get, ajax_post} from "../../../../axios";
 moment.locale('zh-cn');
 
 
@@ -21,21 +19,21 @@ class AddForm extends Component {
     }
 
     init = () => {
-        if (localStorage.getItem("token")) {
-            this.setState({spinstatus: true})
-            axios({
-                method: 'get',
-                url: baseurl + 'api/account?token=' + localStorage.getItem("token")
-            }).then((response) => {
-                this.getAccountSource(response.data.data)
+        this.setState({spinstatus: true})
+        ajax_get(
+            'api/account?token=' + localStorage.getItem("token"),
+            (data)=>{
+                this.getAccountSource(data)
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
                 this.setState({spinstatus: false})
-            }).catch((error) => {
-                message.error("加载失败")
-                this.setState({spinstatus: false})
-            })
-        }
-
+            }
+        )
     }
+
 
     handleSubmit=(e)=>{
         e.preventDefault();
@@ -46,19 +44,20 @@ class AddForm extends Component {
                 values.record_id = localStorage.getItem("record_id")
                 if(values.money<=parseFloat(localStorage.getItem("max"))){
                     this.setState({spinstatus: true})
-                    axios({
-                        method:'post',
-                        url:baseurl+'api/record/sequel?token='+localStorage.getItem("token"),
-                        data:qs.stringify(values)
-                    }).then((response)=>{
-                        console.log(response)
-                        message.success("添加成功")
-                        this.setState({spinstatus: false})
-                        createHashHistory().push('/record/detail')
-                    }).catch((err)=>{
-                        message.error("添加失败")
-                        this.setState({spinstatus: false})
-                    })
+                    ajax_post(
+                        'api/record/sequel?token='+localStorage.getItem("token"),
+                        ()=>{
+                            message.success("添加成功")
+                            createHashHistory().push('/record/detail')
+                        },
+                        (err)=>{
+                            message.error(err.data)
+                        },
+                        ()=>{
+                            this.setState({spinstatus: false})
+                        },
+                        values
+                    )
                 }else {
                     message.error("金额不能超过"+localStorage.getItem("max"))
                 }

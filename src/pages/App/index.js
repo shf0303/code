@@ -1,14 +1,11 @@
 import React, {Component} from 'react';
-import {HashRouter,Switch,Route,Link} from 'react-router-dom';
+import {HashRouter, Switch, Route, Link} from 'react-router-dom';
 import Register from '../Components/register'
 import './App.css';
 import Login from '../Components/login';
 import PDetails from '../Components/PDetails';
-import axios from 'axios';
-import baseurl from '../../baseurl';
-import { Layout, Menu, Breadcrumb, Icon,Spin, message,Modal  } from 'antd';
+import {Layout, Menu,  Icon, Spin, message, Modal, Dropdown} from 'antd';
 import Avatar from 'antd/es/avatar';
-import {createHashHistory} from 'history';
 import Index from '../Components/Index';
 import Findpwd from '../Components/findpwd';
 import Account from '../Components/account/index';
@@ -16,164 +13,167 @@ import Category from "../Components/category";
 import Record from "../Components/record";
 import Book from "../Components/book";
 import Feedback from "../Components/Feedback";
-const { SubMenu } = Menu;
-const { Header, Content, Sider } = Layout;
+import {ajax_get} from '../../axios';
+
+const {SubMenu} = Menu;
+const {Header, Content, Sider} = Layout;
 
 class App extends Component {
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
-            token:localStorage.getItem("token"),
-            current_key:'1',
-            spinstatus:false
+            spinStatus: false
         }
     }
 
-    handleSend=(data)=>{
-        this.setState({...data},()=>{this.init()});
+
+    //登陆注册后更新页面
+    handleInit=()=>{
+        this.init();
     }
 
-    handleChange=(data)=>{
+
+    //改变当前显示帐簿信息
+    handleChange= (data)=>{
         this.setState({...data})
     }
 
-    showModal =()=>{
+
+    showModal = () => {
         const modal = Modal.confirm({
-            title:"你确定要退出嘛",
-            okText:"确定",
-            cancelText:"取消",
-            onOk:()=>{
-                this.setState({spinstatus:true})
-                //移除网页存储token,并注销用户
-                localStorage.removeItem("token");
-                localStorage.removeItem("user_id");
-                axios.get(baseurl+'api/user/logout?token='+localStorage.getItem('token'))
-                    .then((response)=> {
+            title: "你确定要退出嘛",
+            okText: "确定",
+            cancelText: "取消",
+            onOk: () => {
+                this.setState({spinStatus: true})
+                ajax_get(
+                    'api/user/logout?token=' + localStorage.getItem("token"),
+                    () => {
                         message.success('注销成功');
-                        this.setState({spinstatus:false})
-                    })
-                    .catch(function (error) {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("user_id");
+                        this.init();
+                    },
+                    () => {
                         message.error('注销失败');
-                        this.setState({spinstatus:false})
-                    })
-
-                this.setState({token:localStorage.getItem("token")})
-                this.init();
-
-                //跳转首页，并显示更新光标选中对象
-                createHashHistory().push('/');
-                this.setState({current_key:'1'});
+                    },
+                    ()=>{
+                        this.setState({spinStatus: false})
+                    }
+                    )
 
                 //销毁确认框
                 modal.destroy();
             },
-            onCancel:()=>{
+
+            onCancel: () => {
                 modal.destroy();
             }
         })
     }
 
 
-    init = ()=>{
-        if (localStorage.getItem("token")){
-            this.setState({spinstatus:true})
-            axios.get(baseurl+'api/user/profile?token='+localStorage.getItem("token"))
-                .then((response)=> {
+    init = () => {
+        this.setState({spinStatus:true})
+            ajax_get(
+                'api/user/profile?token=' + localStorage.getItem("token"),
+                (data) => {
                     this.setState({
-                        avatar_url:response.data.data.avatar_url,
-                        nickname:response.data.data.nickname,
-                        mobile:response.data.data.mobile
+                        avatar_url: data.avatar_url,
+                        nickname: data.nickname,
                     })
-                })
-                .catch(function (error) {
-                    message.error("请检查你的网络");
-                })
+                },
+                (err) => {
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinStatus: false})
+                }
+            )
 
-            axios({
-                method:'get',
-                url:baseurl+'api/book/get-default?token='+localStorage.getItem("token")
-            }).then((response)=>{
-                this.setState({current_book:response.data.data.name})
-            })
 
-            this.setState({spinstatus:false})
-        }else {
-            return false;
-        }
+            ajax_get(
+                'api/book/get-default?token=' + localStorage.getItem("token"),
+                (data) => {
+                    this.setState({current_book: data.name})
+                },
+                (err) => {
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinStatus: false})
+                })
     }
 
-    componentDidMount(){
+
+    componentDidMount() {
         this.init();
     }
+
     render() {
+        const menu = (
+            <Menu>
+                <Menu.Item key="0">
+                    <Link to={'/personal_details'}>个人详情</Link>
+                </Menu.Item>
+                <Menu.Item onClick={() => {
+                    this.showModal()
+                }} key="1">
+                    注销
+                </Menu.Item>
+                <Menu.Item key="2">
+                    <Link to={'/feedback'}>反馈</Link>
+                </Menu.Item>
+            </Menu>
+        )
+
+
         return (
             <div className={'App'}>
                 <HashRouter>
-                    <Spin spinning={this.state.spinstatus} tip={"loading"}>
+                    <Spin spinning={this.state.spinStatus} tip={"loading"}>
                         <Layout>
                             <Header className="header">
                                 <div className="logo">
-                                    {!this.state.token?(
+                                    {!localStorage.getItem("token") ? (
                                         <div className={'status'}>
                                             <Icon type={'user'} className={'load_img'}/>
                                             <span>未登录用户</span>
                                         </div>
-                                    ):(
-                                        <Link className={'wel-msg'} to={'/personal_details'} title={'查看个人信息'}>
-                                            <Avatar style={{marginRight:'10px'}} src={this.state.avatar_url} className={'avatar_img'}/>
-                                            <span >欢迎你,{this.state.nickname}</span>
-                                        </Link>
+                                    ) : (
+                                        <Dropdown overlay={menu} trigger={['click']}>
+                                            <div>
+                                                <Avatar style={{marginRight: '10px'}} src={this.state.avatar_url}
+                                                        className={'avatar_img'}/>
+                                                <span>欢迎你,{this.state.nickname}</span>
+                                                <Icon type="down"/>
+                                            </div>
+                                        </Dropdown>
                                     )}
                                 </div>
-                                <div style={{float:'right',fontSize:'16px'}}>
-                                    {localStorage.getItem("token")?
+
+
+                                <div style={{float: 'right', fontSize: '16px'}}>
+                                    {localStorage.getItem("token") ?
                                         (<span>当前帐簿：<b>{this.state.current_book}</b></span>)
                                         :
                                         (<span/>)}
                                 </div>
-                                {this.state.token == undefined?(
-                                    <Menu
-                                        theme="dark"
-                                        mode="horizontal"
-                                        onClick={(e)=>{
-                                            this.setState({current_key:e.key})
-                                        }}
-                                        selectedKeys={[this.state.current_key]}
-                                        style={{ lineHeight: '64px' }}
-                                    >
-                                        <Menu.Item key="1"><Link to={'/'}>首页</Link></Menu.Item>
-                                        <Menu.Item key="2"><Link to={'/register'}>注册</Link></Menu.Item>
-                                        <Menu.Item key="3"><Link to={'/login'}>登录</Link></Menu.Item>
-                                    </Menu>
-                                ):(
-                                    <Menu
-                                        theme="dark"
-                                        mode="horizontal"
-                                        onClick={(e)=>{
-                                            this.setState({current_key:e.key})
-                                        }}
-                                        selectedKeys={[this.state.current_key]}
-                                        style={{ lineHeight: '64px' }}
-                                    >
-                                        <Menu.Item key="1"><Link to={'/'}>首页</Link></Menu.Item>
-                                        <Menu.Item key="2"><Link to={'/personal_details'}>个人信息</Link></Menu.Item>
-                                        <Menu.Item key="3" onClick={this.showModal}>注销登录</Menu.Item>
-                                        <Menu.Item key="4"><Link to={'/feedback'}>反馈</Link></Menu.Item>
-                                    </Menu>
-                                )}
                             </Header>
 
                             <Layout>
-                                {localStorage.getItem("token")?(<Sider onClick={()=>{this.setState({current_key:undefined})}} width={200} style={{ background: '#fff' }}>
+                                {localStorage.getItem("token") ? (<Sider onClick={() => {
+                                    this.setState({current_key: undefined})
+                                }} width={200} style={{background: '#fff'}}>
                                     <Menu
                                         mode="inline"
-                                        style={{ height: '100%', borderRight: 0 }}
+                                        style={{height: '100%', borderRight: 0}}
                                     >
                                         <SubMenu
                                             key="sub1"
                                             title={
                                                 <span>
-                                                <Icon type="user" />
+                                                <Icon type="user"/>
                                                 账户管理
                                              </span>
                                             }
@@ -185,7 +185,7 @@ class App extends Component {
                                             key="sub2"
                                             title={
                                                 <span>
-                                                <Icon type="fund" />
+                                                <Icon type="fund"/>
                                                 收支类别
                                             </span>
                                             }
@@ -198,7 +198,7 @@ class App extends Component {
                                             key="sub3"
                                             title={
                                                 <span>
-                                                <Icon type="money-collect" />
+                                                <Icon type="money-collect"/>
                                                 帐本管理
                                             </span>
                                             }
@@ -210,7 +210,7 @@ class App extends Component {
                                             key="sub4"
                                             title={
                                                 <span>
-                                                <Icon type="snippets" />
+                                                <Icon type="snippets"/>
                                                 帐簿管理
                                             </span>
                                             }
@@ -219,10 +219,9 @@ class App extends Component {
                                             <Menu.Item key="8"><Link to={'/book/member'}>成员管理</Link></Menu.Item>
                                         </SubMenu>
                                     </Menu>
-                                </Sider>):(
-                                    <span/>
-                                )}
-                                <Layout style={{ padding: '0 24px 24px' }}>
+                                </Sider>) : (null)}
+
+                                <Layout style={{padding: '0 24px 24px'}}>
                                     <Content
                                         style={{
                                             background: '#fff',
@@ -232,18 +231,16 @@ class App extends Component {
                                         }}
                                     >
                                         <Switch>
-                                            <Route exact path={'/'}><Index change={this.handleChange} /></Route>
-                                            <Route path={'/register'}><Register change={this.handleChange} send={this.handleSend} /></Route>
-                                            <Route path={'/login'}><Login change={this.handleChange} send={this.handleSend} /></Route>
-                                            <Route path={'/personal_details'}><PDetails
-                                                change={this.handleChange}
-                                            /></Route>
-                                            <Route path={'/findpassword'}><Findpwd /></Route>
-                                            <Route path={'/account'}><Account /></Route>
-                                            <Route path={'/category'}><Category /></Route>
-                                            <Route path={'/record'}><Record /></Route>
+                                            <Route exact path={'/'}><Index/></Route>
+                                            <Route path={'/register'}><Register init={this.handleInit}/></Route>
+                                            <Route path={'/login'}><Login init={this.handleInit}/></Route>
+                                            <Route path={'/personal_details'}><PDetails change={this.handleChange}/></Route>
+                                            <Route path={'/findpassword'}><Findpwd/></Route>
+                                            <Route path={'/account'}><Account/></Route>
+                                            <Route path={'/category'}><Category/></Route>
+                                            <Route path={'/record'}><Record/></Route>
                                             <Route path={'/book'}><Book change={this.handleChange}/></Route>
-                                            <Route path={'/feedback'}><Feedback change={this.handleChange}/></Route>
+                                            <Route path={'/feedback'}><Feedback /></Route>
                                         </Switch>
                                     </Content>
                                 </Layout>

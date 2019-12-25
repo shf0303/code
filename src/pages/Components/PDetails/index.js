@@ -4,10 +4,6 @@ import Index from './Components/Index/index';
 import Avatar from './Components/changeImg/index';
 import ResetTel from './Components/resetTel/index';
 class PDetails extends Component {
-    componentDidMount() {
-        this.props.change({current_key:'2'})
-    }
-
     render() {
         return (
             <div>

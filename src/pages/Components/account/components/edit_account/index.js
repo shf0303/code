@@ -7,10 +7,8 @@ import {
     message,
     Spin
 } from 'antd';
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from '../../../../../baseurl';
 import {createHashHistory} from "history";
+import {ajax_get, ajax_post} from "../../../../../axios";
 class EditForm extends React.Component {
     constructor(props){
         super(props)
@@ -24,35 +22,46 @@ class EditForm extends React.Component {
         this.props.form.validateFieldsAndScroll((err, values) => {
             if (!err) {
                 this.setState({spinstatus:true});
-                axios({
-                    method:'post',
-                    url:baseurl+'api/account/update?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    message.success("修改成功")
-                    createHashHistory().push('/account');
-                    this.setState({spinstatus:false});
-                }).catch((error)=>{
-                    message.error("修改失败")
-                    this.setState({spinstatus:false});
-                })
+                ajax_post(
+                    'api/account/update?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
+                    (data)=>{
+                        message.success("修改成功")
+                        createHashHistory().push('/account');
+                    },
+                    (err)=>{
+                        message.error(err.data)
+
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false});
+                    },
+                    values
+                )
             }
         });
     };
 
     init = ()=>{
+
         this.setState({spinstatus:true});
-        axios({
-            method: 'get',
-            url:baseurl+'api/account/detail?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token")
-        }).then((response)=>{
-            this.setState({
-                name:response.data.data.name,
-                type:response.data.data.type,
-                sort:response.data.data.sort,
-                remark:response.data.data.remark
-            },()=>{this.setState({spinstatus:false});})
-        })
+        ajax_get(
+            'api/account/detail?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setState({
+                    name:data.name,
+                    type:data.type,
+                    sort:data.sort,
+                    remark:data.remark
+                })
+            },
+            (err)=>{
+                message.error(err.data)
+
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            }
+        )
     }
 
     componentDidMount() {

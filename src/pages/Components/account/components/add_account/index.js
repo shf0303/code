@@ -7,10 +7,8 @@ import {
     message,
     Spin
 } from 'antd';
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from '../../../../../baseurl';
 import {createHashHistory} from "history";
+import {ajax_post} from "../../../../../axios";
 class AddForm extends React.Component {
     constructor(props){
         super(props)
@@ -24,21 +22,25 @@ class AddForm extends React.Component {
         this.props.form.validateFieldsAndScroll((err, values) => {
             if (!err) {
                 this.setState({spinstatus:true})
-                axios({
-                    method:'post',
-                    url:baseurl+'api/account/create?token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    createHashHistory().push('/account');
-                    message.success("添加账户成功");
-                    this.setState({spinstatus:false})
-                }).catch((error)=>{
-                    message.error("添加账户失败")
-                    this.setState({spinstatus:false})
-                })
+                ajax_post(
+                    'api/account/create?token='+localStorage.getItem("token"),
+                    ()=>{
+                        createHashHistory().push('/account');
+                        message.success("添加账户成功");
+                    },
+                    (err)=>{
+                        message.error(err.data)
+
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false})
+                    },
+                    values
+                )
             }
         });
     };
+
 
 
     render() {

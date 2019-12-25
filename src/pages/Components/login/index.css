@@ -1,8 +1,14 @@
-.login{
-    width: 700px;
-    margin: 0 auto;
-    margin-top: 50px;
+.login-form{
+    max-width: 300px;
+    marin-left:50px;
 }
-.login .input-mobile{
-    width: 500px;
+.login-form-button{
+    width:100%;
+}
+.login-form-forgot{
+    float: right;
+}
+.form-box{
+    max-width: 300px;
+    margin: 50px auto;
 }

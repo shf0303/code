@@ -1,8 +1,6 @@
 import React, {Component} from 'react';
 import {Table, Spin, Divider, Popconfirm, Icon, Button, Drawer, Form, Input,message,Modal,Badge} from "antd";
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from "../../../../../baseurl";
+import {ajax_get, ajax_post} from "../../../../../axios";
 
 class EditForm extends Component{
     render() {
@@ -70,37 +68,46 @@ class Index extends Component {
     init=()=>{
         let source=[]
         this.setState({spinstatus:true})
-        axios({
-            method:'get',
-            url:baseurl+'api/book/get-default?token='+localStorage.getItem("token")
-        }).then((response)=>{
-            this.props.change({current_book:response.data.data.name})
-            this.setState({current_book_id:response.data.data.id},()=>{
-                axios({
-                    method:'get',
-                    url:baseurl+'api/book?token='+localStorage.getItem("token"),
-                }).then((response)=>{
-                    this.setState({spinstatus:false})
-                    response.data.data.map((item,key)=>{
-                        source.push({
-                            key:key,
-                            name:item.name,
-                            user_name:item.user_name,
-                            sort:item.sort,
-                            created_at:item.created_at,
-                            updated_at: item.updated_at,
-                            status:[item.id,item.name],
-                            action:[item.id,item.user_id]
-                        })
-                    })
-                    this.setState({dataSource:source})
-                }).catch((err)=>{
-                    message.error(err)
-                    this.setState({spinstatus:false})
-                })
-            })
-        })
+        ajax_get(
+            'api/book/get-default?token='+localStorage.getItem("token"),
+            (data)=>{
+                this.setState(
+                    {current_book_id:data.id},
+                    ()=>{
+                        ajax_get(
+                            'api/book?token='+localStorage.getItem("token"),
+                            (data)=>{
+                                data.map((item,key)=>{
+                                    source.push({
+                                        key:key,
+                                        name:item.name,
+                                        user_name:item.user_name,
+                                        sort:item.sort,
+                                        created_at:item.created_at,
+                                        updated_at: item.updated_at,
+                                        status:[item.id,item.name],
+                                        action:[item.id,item.user_id]
+                                    })
+                                })
+                                this.setState({dataSource:source})
+                            },
+                            (err)=>{message.error(err.data)},
+                            ()=>{
+                                this.setState({spinstatus:false})
+                            }
+                        )
+                    }
+                    )
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            }
+        )
     }
+
     handleAddCancel = () => {
         this.setState({ add_visible: false });
     };
@@ -110,23 +117,20 @@ class Index extends Component {
         form.validateFields((err, values) => {
             if (!err){
                 this.setState({spinstatus:true})
-                axios({
-                    method:"post",
-                    url:baseurl+'api/book/create?token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    if (response.data.status){
+                ajax_post(
+                    'api/book/create?token='+localStorage.getItem("token"),
+                    (data)=>{
                         message.success("添加成功")
-                        this.setState({add_visible:false})
                         this.init();
-                    }else {
-                        message.error(response.data.data)
+                    },
+                    (err)=>{
+                        message.error(err.data)
+                    },
+                    ()=>{
                         this.setState({spinstatus:false})
-                    }
-                }).catch((err)=>{
-                    message.error(err)
-                    this.setState({spinstatus:false})
-                })
+                    },
+                    values
+                )
             }
         })
     }
@@ -141,24 +145,21 @@ class Index extends Component {
             if (!err){
                 this.setState({spinstatus:true})
                 values.book_id=this.state.book_id;
-                axios({
-                    method:"post",
-                    url:baseurl+'api/book/update?token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    this.setState({edit_visible:false})
-                    if (response.data.status){
+                ajax_post(
+                    'api/book/update?token='+localStorage.getItem("token"),
+                    (data)=>{
                         message.success("修改成功")
-                        console.log(response);
                         this.init();
-                    }else {
-                        message.error(response.data.data)
+                    },
+                    (err)=>{
+                        message.error(err.data)
+                    },
+                    ()=>{
                         this.setState({spinstatus:false})
-                    }
-                }).catch((err)=>{
-                    message.error(err)
-                    this.setState({spinstatus:false})
-                })
+
+                    },
+                    values
+                )
             }
         })
     }
@@ -210,25 +211,34 @@ class Index extends Component {
                 render: (text,record) => (
                     <div>
                         {text[0] == this.state.current_book_id?(
-                            <Badge status="processing" />
+                            <div>
+                                <Badge status="processing" />
+                                <Divider type={'vertical'} />
+                                <span style={{color:'#1890ff'}}>当前帐簿</span>
+                            </div>
                         ):(
-                            <Badge status="default"/>
+                            <div>
+                                <Badge status="default"/>
+                                <Divider type={'vertical'} />
+                                <Button icon={'sync'} onClick={()=>{
+                                    this.setState({spinstatus:true})
+                                    ajax_post(
+                                        'api/book/set-default?token='+localStorage.getItem("token"),
+                                        (data)=>{
+                                            this.setState({current_book_id:text[0]})
+                                            this.props.change({current_book: text[1]})
+                                        },
+                                        (err)=>{
+                                            message.error(err.data)
+                                        },
+                                        ()=>{
+                                            this.setState({spinstatus:false})
+                                        },
+                                        {book_id:text[0]}
+                                    )
+                                }}>切换</Button>
+                            </div>
                         )}
-                        <Divider type={'vertical'} />
-                        <Button icon={'sync'} onClick={()=>{
-                            this.setState({spinstatus:true})
-                            axios({
-                                method:'post',
-                                url:baseurl+'api/book/set-default?token='+localStorage.getItem("token"),
-                                data:qs.stringify({book_id:text[0]})
-                            }).then((response)=>{
-                                this.setState({current_book_id:text[0],spinstatus:false})
-                                this.props.change({current_book: text[1]})
-                            }).catch((err)=>{
-                                message.error(err)
-                                this.setState({spinstatus:false})
-                            })
-                        }}>切换</Button>
                     </div>
                 )
             },
@@ -255,21 +265,19 @@ class Index extends Component {
                                     onConfirm={
                                         ()=>{
                                             this.setState({spinstatus:true})
-                                            axios({
-                                                method: 'post',
-                                                url:baseurl+'api/book/delete?token='+localStorage.getItem("token"),
-                                                data:qs.stringify({book_id:text[0]})
-                                            }).then((response)=>{
-                                                if(response.data.status){
+                                            ajax_post(
+                                                'api/book/delete?token='+localStorage.getItem("token"),
+                                                ()=>{
                                                     this.init();
-                                                }else {
+                                                },
+                                                (err)=>{
+                                                    message.error(err.data)
+                                                },
+                                                ()=>{
                                                     this.setState({spinstatus:false})
-                                                    message.error(response.data.data)
-                                                }
-                                            }).catch((err)=>{
-                                                message.error(err)
-                                                this.setState({spinstatus:false})
-                                            })
+                                                },
+                                                {book_id:text[0]}
+                                            )
                                         }
                                     }
                                 >

@@ -1,10 +1,9 @@
  import React from 'react';
-import {Upload,Icon,message} from 'antd';
+import {Upload,Icon,message,Spin} from 'antd';
 import baseurl from '../../../../../baseurl';
 import Button from 'antd/es/button';
-import axios from 'axios';
-import qs from 'qs';
  import {createHashHistory} from "history";
+ import {ajax_post} from "../../../../../axios";
 function getBase64(img, callback) {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
@@ -27,6 +26,7 @@ function beforeUpload(file) {
 class Avatar extends React.Component {
     state = {
         loading: false,
+        spinStatus:false
     };
 
     handleChange = info => {
@@ -50,28 +50,25 @@ class Avatar extends React.Component {
 
 
     handleClick =()=>{
-        if(this.state.fileKey==undefined){
+        if(this.state.fileKey===undefined){
             message.error("您还未上传头像")
         }else{
+            this.setState({spinStatus:true})
             const obj = {avatar:this.state.fileKey}
-            axios({
-                method: 'post',
-                url: baseurl+'api/user/profile/update?token='+localStorage.getItem('token'),
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                data: qs.stringify(obj)
-            }).then((response)=>{
-                if(response.data.status){
-                    console.log(response)
+            ajax_post(
+                'api/user/profile/update?token='+localStorage.getItem('token'),
+                ()=>{
                     message.success("修改成功")
                     createHashHistory().push('/personal_details')
-                }else {
-                    message.error(response.data.data)
-                }
-            }).catch((error)=>{
-                message.error(error)
-            });
+                },
+                (err)=>{
+                    message.error(err.data)
+                },
+                ()=>{
+                    this.setState({spinStatus:false})
+                },
+                obj
+            )
         }
     }
 
@@ -86,21 +83,22 @@ class Avatar extends React.Component {
         const { imageUrl } = this.state;
         return (
             <div>
-                <Upload
-                    method='post'
-                    name="file"
-                    listType="picture-card"
-                    className="avatar-uploader"
-                    showUploadList={false}
-                    action = {baseurl+"api/upload/image?token="+localStorage.getItem("token")}
-                    beforeUpload={beforeUpload}
-                    onChange={this.handleChange}
-                >
-                    {imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
-                </Upload>
-                <Button type={"primary"} onClick={this.handleClick}>保存为头像</Button>
+                <Spin spinning={this.state.spinStatus} tip={"loading"}>
+                    <Upload
+                        method='post'
+                        name="file"
+                        listType="picture-card"
+                        className="avatar-uploader"
+                        showUploadList={false}
+                        action = {baseurl+"api/upload/image?token="+localStorage.getItem("token")}
+                        beforeUpload={beforeUpload}
+                        onChange={this.handleChange}
+                    >
+                        {imageUrl ? <img src={imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
+                    </Upload>
+                    <Button type={"primary"} onClick={this.handleClick}>保存为头像</Button>
+                </Spin>
             </div>
-
         );
     }
 }

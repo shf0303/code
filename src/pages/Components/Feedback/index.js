@@ -1,8 +1,6 @@
 import React, {Component} from 'react';
 import {Input, Button, Row, Col, Spin, message} from 'antd';
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from "../../../baseurl";
+import {ajax_post} from "../../../axios";
 class Feedback extends Component {
     constructor(props){
         super(props);
@@ -10,30 +8,25 @@ class Feedback extends Component {
             spinstatus:false
         }
     }
-    componentDidMount() {
-        this.props.change({current_key:'4'})
-    }
 
     handleClick=()=>{
         this.setState({spinstatus:true})
-        axios({
-            method:'post',
-            url:baseurl+'api/feedback/add?token='+localStorage.getItem("token"),
-            data:qs.stringify({
+        ajax_post(
+            'api/feedback/add?token='+localStorage.getItem("token"),
+            ()=>{
+                message.success("感谢您的反馈")
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
+            },
+            {
                 content:this.state.feedback,
                 contact:this.state.contact
-            })
-        }).then((response)=>{
-            if(response.data.status){
-                message.success("感谢您的反馈")
-            }else {
-                message.error(response.data.data)
             }
-            this.setState({spinstatus:false})
-        }).catch((err)=>{
-            message.error(err)
-            this.setState({spinstatus:false})
-        })
+        )
     }
 
     render() {

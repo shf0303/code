@@ -6,10 +6,8 @@ import {
     message,
     Spin
 } from 'antd';
-import axios from 'axios';
-import qs from 'qs';
-import baseurl from '../../../../../baseurl';
 import {createHashHistory} from "history";
+import {ajax_post} from "../../../../../axios";
 class EditForm extends Component {
     constructor(props){
         super(props)
@@ -24,25 +22,27 @@ class EditForm extends Component {
         this.props.form.validateFieldsAndScroll((err, values) =>{
             if(!err){
                 this.setState({spinstatus:true})
-                axios({
-                    method:'post',
-                    url:baseurl+'api/category/update?id='+this.source.category_id+'&token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    message.success("修改成功")
-                    createHashHistory().push('/category');
-                    this.setState({spinstatus:false})
-                }).catch((error)=>{
-                    message.error("修改失败")
-                    this.setState({spinstatus:false})
-                })
+                ajax_post(
+                    'api/category/update?id='+this.source.category_id+'&token='+localStorage.getItem("token"),
+                    ()=>{
+                        message.success("修改成功")
+                        createHashHistory().push('/category');
+                    },
+                    (err)=>{
+                        message.error(err.data)
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false})
+                    },
+                    values
+                )
             }
         })
     }
 
 
     render() {
-        const { setFieldsValue,getFieldDecorator } = this.props.form;
+        const { getFieldDecorator } = this.props.form;
         const formItemLayout = {
             labelCol: {
                 xs: { span: 24 },

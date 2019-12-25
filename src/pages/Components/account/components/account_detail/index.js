@@ -1,10 +1,9 @@
 import React, {Component} from 'react';
 import { Descriptions, DatePicker,Spin,message } from 'antd';
-import axios from 'axios';
-import baseurl from "../../../../../baseurl";
 import moment from 'moment';
 import locale from 'antd/es/date-picker/locale/zh_CN';
 import 'moment/locale/zh-cn';
+import {ajax_get} from "../../../../../axios";
 moment.locale('zh-cn');
 const {MonthPicker} = DatePicker;
 
@@ -19,29 +18,33 @@ class Account_detail extends Component {
 
     getDetail =()=>{
         this.setState({spinstatus:true})
-        axios({
-            method: 'get',
-            url:baseurl+'api/account/detail?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token")
-        }).then((response)=>{
-            this.setState({spinstatus:false})
-            switch (response.data.data.type) {
-                case 1: response.data.data.type="现金";break;
-                case 2: response.data.data.type="银行";break;
-                case 3: response.data.data.type="支付平台";break;
-                case 4: response.data.data.type="其他";break;
+        ajax_get(
+            'api/account/detail?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
+            (data)=>{
+                switch (data.type) {
+                    case 1: data.type="现金";break;
+                    case 2: data.type="银行";break;
+                    case 3: data.type="支付平台";break;
+                    case 4: data.type="其他";break;
+                }
+                this.setState({
+                    name:data.name,
+                    type:data.type,
+                    initial_balance:data.initial_balance,
+                    balance:data.balance,
+                    create_time:data.created_at,
+                    update_time:data.updated_at,
+                    sort:data.sort,
+                    remark:data.remark,
+                })
+            },
+            (err)=>{
+                message.error(err.data)
+            },
+            ()=>{
+                this.setState({spinstatus:false})
             }
-            this.setState({
-                        name:response.data.data.name,
-                        type:response.data.data.type,
-                        initial_balance:response.data.data.initial_balance,
-                        balance:response.data.data.balance,
-                        create_time:response.data.data.created_at,
-                        update_time:response.data.data.updated_at,
-                        sort:response.data.data.sort,
-                        remark:response.data.data.remark,
-            })
-
-        })
+        )
     }
 
 
@@ -50,17 +53,20 @@ class Account_detail extends Component {
 
         if(data){
             this.setState({spinstatus:true})
-            axios({
-                method: 'get',
-                url:baseurl+'api/account/change?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
-                params:{month:data}
-            }).then((response)=>{
-                this.setState({spinstatus:false})
-                this.setState({in:response.data.data.in,out:response.data.data.out})
-            }).catch((err)=>{
-                this.setState({spinstatus:false})
-                message.error("获取失败")
-            })
+            ajax_get(
+                'api/account/change?id='+localStorage.getItem("account_id")+'&token='+localStorage.getItem("token"),
+                (data)=>{
+                    this.setState({in:data.in,out:data.out})
+                },
+                (err)=>{
+                    message.error(err.data)
+
+                },
+                ()=>{
+                    this.setState({spinstatus:false})
+                },
+                {month:data}
+            )
         }
     }
 

@@ -1,9 +1,7 @@
 import React, {Component} from 'react';
-import baseurl from "../../../../baseurl";
-import axios from "axios";
-import qs from 'qs';
 import {createHashHistory} from "history";
 import {Button,  Form, Input, message, Spin} from "antd";
+import {ajax_post} from "../../../../axios";
 
 
 class EditForm extends Component {
@@ -26,29 +24,32 @@ class EditForm extends Component {
     componentDidMount() {
         this.init()
     }
+
     handleSubmit=(e)=>{
         e.preventDefault();
         this.props.form.validateFieldsAndScroll((err, values) =>{
             if(!err) {
                 this.setState({spinstatus: true})
-                axios({
-                    method:'post',
-                    url:baseurl+'api/record/update?id='+localStorage.getItem("record_id")+'&token='+localStorage.getItem("token"),
-                    data:qs.stringify(values)
-                }).then((response)=>{
-                    createHashHistory().push('/record/detail')
-                    message.success("修改成功")
-                    this.setState({spinstatus: false})
-                }).catch((err)=>{
-                    message.error("修改失败")
-                    this.setState({spinstatus: false})
-                })
+                ajax_post(
+                    'api/record/update?id='+localStorage.getItem("record_id")+'&token='+localStorage.getItem("token"),
+                    (data)=>{
+                        createHashHistory().push('/record/detail')
+                        message.success("修改成功")
+                    },
+                    (err)=>{
+                        message.error(err.data)
+                    },
+                    ()=>{
+                        this.setState({spinstatus:false})
+                    },
+                    values
+                )
             }
         })
     }
 
     render() {
-        const {setFieldsValue, getFieldDecorator} = this.props.form;
+        const { getFieldDecorator} = this.props.form;
         const formItemLayout = {
             labelCol: {
                 xs: {span: 24},
